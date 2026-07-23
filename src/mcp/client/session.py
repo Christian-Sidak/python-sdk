@@ -220,6 +220,24 @@ class ClientSession(
         """Send a ping request."""
         return await self.send_request(types.PingRequest(params=types.RequestParams(_meta=meta)), types.EmptyResult)
 
+    async def server_discover(self, *, meta: RequestParamsMeta | None = None) -> types.DiscoverResult:
+        """Send a ``server/discover`` request.
+
+        Returns the server's supported protocol versions, current capabilities, and
+        instructions.  Server identity is available in the result's ``_meta`` field
+        under the key :data:`~mcp.types.SERVER_INFO_META_KEY`
+        (``"io.modelcontextprotocol/serverInfo"``).
+
+        Example::
+
+            result = await session.server_discover()
+            server_info_raw = (result.meta or {}).get("io.modelcontextprotocol/serverInfo")
+        """
+        return await self.send_request(
+            types.ServerDiscoverRequest(params=types.RequestParams(_meta=meta)),
+            types.DiscoverResult,
+        )
+
     async def send_progress_notification(
         self,
         progress_token: str | int,

@@ -202,6 +202,8 @@ class Server(Generic[LifespanResultT]):
         logger.debug("Initializing server %r", name)
 
         # Populate internal handler dicts from on_* kwargs
+        self._request_handlers["server/discover"] = self._handle_discover
+
         self._request_handlers.update(
             {
                 method: handler
@@ -341,6 +343,33 @@ class Server(Generic[LifespanResultT]):
                 has_handler=self._has_handler,
             )
         return self._experimental_handlers
+
+    async def _handle_discover(
+        self, ctx: ServerRequestContext[LifespanResultT], params: types.RequestParams | None
+    ) -> types.DiscoverResult:
+        """Default ``server/discover`` handler.
+
+        Returns the set of supported protocol versions, the server's current
+        capabilities, and any instructions.  Server identity is stamped into
+        the result's ``_meta`` field under :data:`~mcp.types.SERVER_INFO_META_KEY`
+        per the MCP specification (spec #3002).
+        """
+        from mcp.shared.version import SUPPORTED_PROTOCOL_VERSIONS
+
+        server_info = types.Implementation(
+            name=self.name,
+            version=self.version or "",
+            title=self.title,
+            description=self.description,
+            website_url=self.website_url,
+            icons=self.icons,
+        )
+        return types.DiscoverResult(
+            supported_versions=list(SUPPORTED_PROTOCOL_VERSIONS),
+            capabilities=self.get_capabilities(NotificationOptions(), {}),
+            instructions=self.instructions,
+            _meta={types.SERVER_INFO_META_KEY: server_info.model_dump(mode="json", by_alias=True, exclude_none=True)},
+        )
 
     @property
     def session_manager(self) -> StreamableHTTPSessionManager:

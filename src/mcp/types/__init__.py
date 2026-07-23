@@ -8,6 +8,7 @@ https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/20
 from mcp.types._types import (
     DEFAULT_NEGOTIATED_VERSION,
     LATEST_PROTOCOL_VERSION,
+    SERVER_INFO_META_KEY,
     TASK_FORBIDDEN,
     TASK_OPTIONAL,
     TASK_REQUIRED,
@@ -47,6 +48,7 @@ from mcp.types._types import (
     CreateMessageResult,
     CreateMessageResultWithTools,
     CreateTaskResult,
+    DiscoverResult,
     ElicitationCapability,
     ElicitationRequiredErrorData,
     ElicitCompleteNotification,
@@ -139,6 +141,7 @@ from mcp.types._types import (
     SamplingMessageContentBlock,
     SamplingToolsCapability,
     ServerCapabilities,
+    ServerDiscoverRequest,
     ServerNotification,
     ServerRequest,
     ServerResult,
@@ -208,6 +211,7 @@ __all__ = [
     # Protocol version constants
     "LATEST_PROTOCOL_VERSION",
     "DEFAULT_NEGOTIATED_VERSION",
+    "SERVER_INFO_META_KEY",
     # Task execution mode constants
     "TASK_FORBIDDEN",
     "TASK_OPTIONAL",
@@ -336,6 +340,7 @@ __all__ = [
     "PingRequest",
     "ReadResourceRequest",
     "ReadResourceRequestParams",
+    "ServerDiscoverRequest",
     "SetLevelRequest",
     "SetLevelRequestParams",
     "SubscribeRequest",
@@ -349,6 +354,7 @@ __all__ = [
     "CreateMessageResult",
     "CreateMessageResultWithTools",
     "CreateTaskResult",
+    "DiscoverResult",
     "ElicitResult",
     "ElicitationRequiredErrorData",
     "GetPromptResult",

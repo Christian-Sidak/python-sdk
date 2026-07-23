@@ -15,6 +15,14 @@ LATEST_PROTOCOL_VERSION = "2025-11-25"
 You can find the latest specification at https://modelcontextprotocol.io/specification/latest.
 """
 
+SERVER_INFO_META_KEY = "io.modelcontextprotocol/serverInfo"
+"""The _meta key under which servers stamp their identity in result objects.
+
+Per the MCP specification (#3002), servers SHOULD include this key in the ``_meta``
+field of every result instead of exposing ``serverInfo`` as a top-level field on
+``DiscoverResult``.
+"""
+
 DEFAULT_NEGOTIATED_VERSION = "2025-03-26"
 """The default negotiated version of the Model Context Protocol when no version is specified.
 
@@ -1546,6 +1554,53 @@ class RootsListChangedNotification(
     params: NotificationParams | None = None
 
 
+class ServerDiscoverRequest(Request[RequestParams | None, Literal["server/discover"]]):
+    """Sent from the client to the server to discover its capabilities and identity.
+
+    Clients MAY call ``server/discover`` to learn which protocol versions the server
+    supports, the server's current capabilities, and any instructions, before or after
+    the MCP handshake.  The server's identity is returned in the ``_meta`` field of
+    :class:`DiscoverResult` under the key :data:`SERVER_INFO_META_KEY`.
+    """
+
+    method: Literal["server/discover"] = "server/discover"
+    params: RequestParams | None = None
+
+
+class DiscoverResult(Result):
+    """The result of a ``server/discover`` request.
+
+    Per the MCP specification (#3002), server identity is carried in the ``_meta``
+    field under the key :data:`SERVER_INFO_META_KEY` rather than as a top-level
+    ``serverInfo`` field.
+
+    Example wire shape::
+
+        {
+            "supportedVersions": ["2025-11-25"],
+            "capabilities": {...},
+            "_meta": {
+                "io.modelcontextprotocol/serverInfo": {
+                    "name": "my-server",
+                    "version": "1.0.0"
+                }
+            }
+        }
+    """
+
+    supported_versions: list[str]
+    """MCP protocol versions supported by this server.
+
+    Clients should choose a version from this list for subsequent requests.
+    """
+
+    capabilities: ServerCapabilities
+    """The server's current capabilities."""
+
+    instructions: str | None = None
+    """Natural-language guidance describing the server and its features."""
+
+
 class CancelledNotificationParams(NotificationParams):
     """Parameters for cancellation notifications."""
 
@@ -1596,6 +1651,7 @@ class ElicitCompleteNotification(
 ClientRequest = (
     PingRequest
     | InitializeRequest
+    | ServerDiscoverRequest
     | CompleteRequest
     | SetLevelRequest
     | GetPromptRequest
@@ -1761,6 +1817,7 @@ server_notification_adapter = TypeAdapter[ServerNotification](ServerNotification
 ServerResult = (
     EmptyResult
     | InitializeResult
+    | DiscoverResult
     | CompleteResult
     | GetPromptResult
     | ListPromptsResult
