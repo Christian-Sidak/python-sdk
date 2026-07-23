@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Final, Generic, Literal, TypeAlias, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, FileUrl, TypeAdapter
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, FileUrl, TypeAdapter
 from pydantic.alias_generators import to_camel
 from typing_extensions import NotRequired, TypedDict
 
@@ -27,6 +27,35 @@ https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#protoc
 
 ProgressToken = str | int
 Role = Literal["user", "assistant"]
+
+_WHITESPACE_TABLE = str.maketrans("", "", " \t\n\r\f\v")
+
+
+def _strip_base64_whitespace(v: Any) -> Any:
+    """Strip ASCII whitespace from a base64 string.
+
+    ``base64.encodebytes()`` inserts a ``\\n`` every 76 output characters and
+    appends a trailing ``\\n``.  When such a string travels through a JSON
+    round-trip the embedded newlines survive as literal ``\\n`` characters
+    inside the JSON string value.  Strict RFC 4648 decoders (e.g. Go's
+    ``encoding/base64``) then reject the data with an error like "illegal
+    base64 data at input byte N", even though the underlying bytes are
+    perfectly valid.  Stripping ASCII whitespace before the value is stored
+    produces compact, spec-compliant base64 and keeps strict clients happy.
+    """
+    if isinstance(v, str):
+        return v.translate(_WHITESPACE_TABLE)
+    return v
+
+
+Base64Str = Annotated[str, BeforeValidator(_strip_base64_whitespace)]
+"""A ``str`` subtype that strips ASCII whitespace before validation.
+
+Use this for any field whose value must be a standard (RFC 4648, no line
+breaks) base64 string.  Callers that produce base64 via
+``base64.encodebytes()`` (which inserts ``\\n`` every 76 characters) will
+have those newlines removed automatically.
+"""
 
 IconTheme = Literal["light", "dark"]
 
@@ -748,7 +777,7 @@ class TextResourceContents(ResourceContents):
 class BlobResourceContents(ResourceContents):
     """Binary contents of a resource."""
 
-    blob: str
+    blob: Base64Str
     """A base64-encoded string representing the binary data of the item."""
 
 
@@ -898,7 +927,7 @@ class ImageContent(MCPModel):
     """Image content for a message."""
 
     type: Literal["image"] = "image"
-    data: str
+    data: Base64Str
     """The base64-encoded image data."""
     mime_type: str
     """
@@ -917,7 +946,7 @@ class AudioContent(MCPModel):
     """Audio content for a message."""
 
     type: Literal["audio"] = "audio"
-    data: str
+    data: Base64Str
     """The base64-encoded audio data."""
     mime_type: str
     """
